@@ -429,12 +429,13 @@ function drawBoo2D(g, o = {}) {
 /* ================= Boo 3D (three.js, plush look from the turnaround) ================= */
 const Boo3D = (() => {
   const T3 = window.THREE; if (!T3) return null;
+  if (T3.ColorManagement) T3.ColorManagement.legacyMode = false;
   const cvs = document.createElement('canvas');
   let renderer;
   try { renderer = new T3.WebGLRenderer({ canvas: cvs, alpha: true, antialias: true, premultipliedAlpha: true }); } catch (e) { return null; }
   renderer.setClearColor(0x000000, 0);
   renderer.outputEncoding = T3.sRGBEncoding;
-  renderer.toneMapping = T3.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+  renderer.toneMapping = T3.ACESFilmicToneMapping; renderer.toneMappingExposure = .95;
   const scene = new T3.Scene();
   const cam = new T3.PerspectiveCamera(22, 1, .1, 100); cam.position.set(0, 2.0, 10.29); cam.lookAt(0, 2.0, 0);
   // felt fuzz normal map
@@ -442,8 +443,8 @@ const Boo3D = (() => {
   for (let i = 0; i < id.data.length; i += 4) { id.data[i] = 128 + (Math.random() * 2 - 1) * 95; id.data[i + 1] = 128 + (Math.random() * 2 - 1) * 95; id.data[i + 2] = 255; id.data[i + 3] = 255; }
   fx.putImageData(id, 0, 0);
   const fuzz = new T3.CanvasTexture(fz); fuzz.wrapS = fuzz.wrapT = T3.RepeatWrapping; fuzz.repeat.set(9, 9);
-  const plush = (color, sheen) => new T3.MeshPhysicalMaterial({ color, roughness: .95, metalness: 0, sheen: 1, sheenRoughness: .4, sheenColor: new T3.Color(sheen), normalMap: fuzz, normalScale: new T3.Vector2(.4, .4) });
-  const MG = plush(0x7a9a6e, 0xd6efc6), MY = plush(0xe9d96c, 0xfff6c0), MS = plush(0xe8dea6, 0xfffbe6);
+  const plush = (color, sheen) => new T3.MeshPhysicalMaterial({ color, roughness: .95, metalness: 0, sheen: .45, sheenRoughness: .5, sheenColor: new T3.Color(sheen), normalMap: fuzz, normalScale: new T3.Vector2(.4, .4) });
+  const MG = plush(0x7f9c73, 0xa9c79a), MY = plush(0xe6d66a, 0xf3e8a0), MS = plush(0xe3d8a0, 0xf4ecc8);
   const sph = new T3.SphereGeometry(1, 56, 40);
   const mesh = (mat, p, s, r) => { const m = new T3.Mesh(sph, mat); m.position.set(p[0], p[1], p[2]); m.scale.set(s[0], s[1], s[2]); if (r) m.rotation.set(r[0], r[1], r[2]); return m; };
   const root = new T3.Group(); scene.add(root);
@@ -497,10 +498,10 @@ const Boo3D = (() => {
   const mouth = mesh(new T3.MeshStandardMaterial({ color: 0x2a0c12, roughness: .7 }), [0, -.05, .955], [.19, .012, .06]); head.add(mouth);
   const tongue = mesh(new T3.MeshStandardMaterial({ color: 0xe06a7c, roughness: .6 }), [0, -.09, .96], [.1, .035, .05]); head.add(tongue);
   // lights
-  scene.add(new T3.HemisphereLight(0x8f8ad0, 0x281a2e, .95));
-  const key = new T3.DirectionalLight(0xffc890, 1.55); key.position.set(-4, 3, 6); scene.add(key);
-  const rim = new T3.DirectionalLight(0xbcd0ff, 1.25); rim.position.set(5, 5, -5); scene.add(rim);
-  const under = new T3.PointLight(0xff9a4a, 1.4, 12); under.position.set(0, .3, 3.5); scene.add(under);
+  scene.add(new T3.HemisphereLight(0x9a96d0, 0x2a1c30, 1.0));
+  const key = new T3.DirectionalLight(0xffd2a0, 1.6); key.position.set(-4, 3, 6); scene.add(key);
+  const rim = new T3.DirectionalLight(0xbcd0ff, 1.1); rim.position.set(5, 5, -5); scene.add(rim);
+  const under = new T3.PointLight(0xff9a4a, 1.0, 12); under.position.set(0, .3, 3.5); scene.add(under);
   let sw = 0, sh = 0, sd = 0;
   function render(w, h, dpr, t, st) {
     if (w !== sw || h !== sh || dpr !== sd) { renderer.setPixelRatio(dpr); renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); sw = w; sh = h; sd = dpr; }
