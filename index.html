@@ -444,7 +444,7 @@ const Boo3D = (() => {
   fx.putImageData(id, 0, 0);
   const fuzz = new T3.CanvasTexture(fz); fuzz.wrapS = fuzz.wrapT = T3.RepeatWrapping; fuzz.repeat.set(9, 9);
   const plush = (color, sheen) => new T3.MeshPhysicalMaterial({ color, roughness: .95, metalness: 0, sheen: .45, sheenRoughness: .5, sheenColor: new T3.Color(sheen), normalMap: fuzz, normalScale: new T3.Vector2(.4, .4) });
-  const MG = plush(0x7f9c73, 0xa9c79a), MY = plush(0xe6d66a, 0xf3e8a0), MS = plush(0xe3d8a0, 0xf4ecc8);
+  const MG = plush(0x5f8a5e, 0x9cc095), MY = plush(0xe6d66a, 0xf3e8a0), MS = plush(0xe3d8a0, 0xf4ecc8);
   const sph = new T3.SphereGeometry(1, 56, 40);
   const mesh = (mat, p, s, r) => { const m = new T3.Mesh(sph, mat); m.position.set(p[0], p[1], p[2]); m.scale.set(s[0], s[1], s[2]); if (r) m.rotation.set(r[0], r[1], r[2]); return m; };
   const root = new T3.Group(); scene.add(root);
@@ -458,8 +458,8 @@ const Boo3D = (() => {
   for (let a = 32; a <= 150; a += 13) {
     const t = a * Math.PI / 180, y = 1.0 + 1.05 * Math.cos(t), z = -.85 * Math.sin(t);
     const n = new T3.Vector3(0, Math.cos(t) / 1.05, -Math.sin(t) / .85).normalize();
-    const s = (a / 13 | 0) % 2 ? .16 : .2;
-    body.add(mesh(MS, [0, y + n.y * .07, z + n.z * .07], [.08, s, s]));
+    const s = (a / 13 | 0) % 2 ? .19 : .24;
+    body.add(mesh(MS, [0, y + n.y * .11, z + n.z * .11], [.1, s, s]));
   }
   const head = new T3.Group(); head.position.set(0, 1.95, 0); body.add(head);
   head.add(mesh(MG, [0, .42, 0], [1.08, .85, .9]));
@@ -468,8 +468,8 @@ const Boo3D = (() => {
   for (let a = 18; a <= 168; a += 12) {
     const t = a * Math.PI / 180, y = .42 + .85 * Math.cos(t), z = -.9 * Math.sin(t);
     const n = new T3.Vector3(0, Math.cos(t) / .85, -Math.sin(t) / .9).normalize();
-    const s = (a / 12 | 0) % 2 ? .15 : .19;
-    head.add(mesh(MS, [0, y + n.y * .07, z + n.z * .07], [.08, s, s]));
+    const s = (a / 12 | 0) % 2 ? .18 : .23;
+    head.add(mesh(MS, [0, y + n.y * .11, z + n.z * .11], [.1, s, s]));
   }
   const eyeMat = new T3.MeshPhysicalMaterial({ color: 0x080808, roughness: .1, clearcoat: 1, clearcoatRoughness: .04 });
   const glint = new T3.MeshBasicMaterial({ color: 0xffffff });
@@ -498,14 +498,14 @@ const Boo3D = (() => {
   const mouth = mesh(new T3.MeshStandardMaterial({ color: 0x2a0c12, roughness: .7 }), [0, -.05, .955], [.19, .012, .06]); head.add(mouth);
   const tongue = mesh(new T3.MeshStandardMaterial({ color: 0xe06a7c, roughness: .6 }), [0, -.09, .96], [.1, .035, .05]); head.add(tongue);
   // lights
-  scene.add(new T3.HemisphereLight(0x9a96d0, 0x2a1c30, 1.0));
-  const key = new T3.DirectionalLight(0xffd2a0, 1.6); key.position.set(-4, 3, 6); scene.add(key);
+  scene.add(new T3.HemisphereLight(0xa6b4e0, 0x2a1c30, 1.0));
+  const key = new T3.DirectionalLight(0xfff0e2, 1.5); key.position.set(-4, 3, 6); scene.add(key);
   const rim = new T3.DirectionalLight(0xbcd0ff, 1.1); rim.position.set(5, 5, -5); scene.add(rim);
   const under = new T3.PointLight(0xff9a4a, 1.0, 12); under.position.set(0, .3, 3.5); scene.add(under);
   let sw = 0, sh = 0, sd = 0;
   function render(w, h, dpr, t, st) {
     if (w !== sw || h !== sh || dpr !== sd) { renderer.setPixelRatio(dpr); renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); sw = w; sh = h; sd = dpr; }
-    root.rotation.y = -.42 + Math.sin(t * .4) * .1 + st.look * .22;
+    root.rotation.y = -.62 + Math.sin(t * .4) * .1 + st.look * .2;
     root.position.y = Math.sin(t * 1.2) * .05;
     const sq = st.squash; body.scale.set(1 - sq * .6, 1 + sq, 1 - sq * .6);
     head.rotation.z = Math.sin(t * .7) * .05 + st.tilt;
