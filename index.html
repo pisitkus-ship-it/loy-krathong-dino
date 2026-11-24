@@ -1,0 +1,705 @@
+<!doctype html>
+<html lang="th">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ลอยกระทงกับไดโน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600&family=Noto+Sans+Thai:wght@400;500;600&display=swap">
+<style>
+/* Layout: full-bleed night lake canvas; a glassy builder card floats over it, then a slim control bar on the water. Single dark look, on purpose. */
+:root{
+  --night:#0c1030;
+  --ink:#f7eedc;
+  --muted:#c2bad3;
+  --lantern:#ffb04f;
+  --lantern-deep:#f07a2a;
+  --leaf:#86b56e;
+  --panel:rgba(17,20,54,.82);
+  --line:rgba(255,214,150,.20);
+  --display:"Mitr","Noto Sans Thai",system-ui,sans-serif;
+  --body:"Noto Sans Thai","Mitr",system-ui,sans-serif;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%;overflow:hidden;background:var(--night);color:var(--ink)}
+body{margin:0;font-family:var(--body);font-size:15px;line-height:1.55}
+#app{position:relative;height:100%;overflow:hidden;background:var(--night)}
+#scene{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:manipulation;cursor:pointer}
+
+.brand{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px));pointer-events:none;z-index:3}
+.brand h1{margin:0;font-family:var(--display);font-weight:500;font-size:clamp(18px,2.4vw,24px);letter-spacing:.01em;color:var(--ink);text-shadow:0 2px 14px rgba(255,150,60,.45)}
+.brand p{margin:0;font-size:12.5px;color:var(--muted);letter-spacing:.04em}
+
+#status{position:absolute;top:calc(16px + env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));z-index:3;font-size:12.5px;padding:6px 12px;border-radius:999px;background:rgba(12,14,40,.6);border:1px solid var(--line);color:var(--muted);max-width:52vw}
+
+/* builder */
+#builder{position:absolute;inset:0;z-index:5;display:flex;overflow:auto;padding-block:calc(72px + env(safe-area-inset-top,0px)) 20px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:radial-gradient(ellipse at 50% 60%,rgba(8,10,30,.25),rgba(6,8,26,.72))}
+.card{margin:auto;width:min(940px,100%);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:24px;background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:22px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 30px 90px rgba(0,0,0,.5)}
+.stage{display:flex;flex-direction:column;gap:12px;min-width:0}
+#preview{width:100%;aspect-ratio:1/1;max-width:100%;border-radius:16px;display:block;background:#10143a}
+.stage .note{font-size:13px;color:var(--muted);margin:0}
+.opts{display:flex;flex-direction:column;gap:16px;min-width:0}
+.opts h2{margin:0;font-family:var(--display);font-weight:500;font-size:24px;line-height:1.25;text-wrap:balance}
+.opts .lede{margin:-8px 0 0;color:var(--muted);font-size:14px}
+.group{display:flex;flex-direction:column;gap:8px}
+.label{font-family:var(--display);font-size:13px;font-weight:400;letter-spacing:.06em;color:var(--lantern)}
+.label small{color:var(--muted);letter-spacing:0;font-family:var(--body)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:14px;color:var(--ink);background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:6px 13px 6px 8px;cursor:pointer;transition:background .15s,border-color .15s,transform .15s}
+.chip:hover{background:rgba(255,255,255,.1)}
+.chip[aria-pressed="true"]{background:rgba(255,176,79,.16);border-color:var(--lantern);box-shadow:0 0 0 1px var(--lantern) inset}
+.chip .sw{width:16px;height:16px;border-radius:50%;border:1px solid rgba(0,0,0,.25);flex:none}
+.chip:focus-visible,.btn:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--lantern);outline-offset:2px}
+.fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:10px}
+input[type=text],textarea{width:100%;box-sizing:border-box;font:inherit;font-size:15px;color:var(--ink);background:rgba(4,6,24,.55);border:1px solid rgba(255,255,255,.16);border-radius:12px;padding:9px 12px}
+textarea{resize:none;height:44px}
+input::placeholder,textarea::placeholder{color:rgba(194,186,211,.6)}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:4px}
+.btn{font:inherit;font-family:var(--display);font-weight:500;font-size:15px;border-radius:999px;padding:10px 20px;cursor:pointer;border:1px solid transparent;color:var(--ink);background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);transition:transform .15s,background .15s}
+.btn:hover{transform:translateY(-1px);background:rgba(255,255,255,.14)}
+.btn.primary{background:linear-gradient(180deg,#ffc56b,var(--lantern-deep));color:#2a1406;border-color:transparent;box-shadow:0 8px 28px rgba(255,140,50,.4);font-size:17px;padding:11px 26px}
+.btn.primary:hover{background:linear-gradient(180deg,#ffd282,#f78a3a)}
+.btn.ghost{background:transparent}
+
+/* lake ui */
+#lakeUI{position:absolute;left:0;right:0;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:4;display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:none;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+#lakeUI .bar{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;pointer-events:auto}
+#lakeUI .bar .btn{background:rgba(12,14,40,.66);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+#lakeUI .bar .btn.primary{background:linear-gradient(180deg,#ffc56b,var(--lantern-deep));font-size:15px;padding:10px 20px}
+#hint{font-size:13px;color:var(--muted);text-align:center;transition:opacity 1.2s;text-shadow:0 1px 6px #000}
+
+#wishCard{position:absolute;z-index:6;left:50%;top:calc(80px + env(safe-area-inset-top,0px));transform:translateX(-50%);width:min(360px,calc(100% - 32px));box-sizing:border-box;background:rgba(255,246,228,.96);color:#33223a;border-radius:18px;padding:14px 18px 16px;box-shadow:0 18px 50px rgba(0,0,0,.45),0 0 40px rgba(255,170,80,.35)}
+#wishCard .who{font-family:var(--display);font-size:13px;color:#a2552a;letter-spacing:.04em}
+#wishCard .what{font-family:var(--display);font-size:19px;line-height:1.45;margin-top:2px;overflow-wrap:anywhere}
+#wishCard .close{position:absolute;top:6px;right:8px;background:none;border:0;font-size:20px;color:#8a6a6a;cursor:pointer;padding:4px 8px}
+
+#toast{position:absolute;z-index:7;left:50%;top:calc(84px + env(safe-area-inset-top,0px));transform:translate(-50%,-8px);opacity:0;transition:opacity .4s,transform .4s;background:rgba(12,14,40,.82);border:1px solid var(--line);padding:8px 16px;border-radius:999px;font-family:var(--display);font-size:14px;pointer-events:none;white-space:nowrap;max-width:calc(100% - 32px);overflow:hidden;text-overflow:ellipsis}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+
+@media (max-width:760px){
+  .card{grid-template-columns:1fr;padding:16px;gap:14px;border-radius:18px}
+  #preview{aspect-ratio:auto;height:200px}
+  .opts h2{font-size:20px}
+  .fields{grid-template-columns:1fr}
+  #status{display:none}
+  #builder{padding-block:calc(64px + env(safe-area-inset-top,0px)) 16px}
+}
+@media (prefers-reduced-motion: reduce){ .btn,.chip,#toast{transition:none} }
+</style>
+
+<div id="app">
+  <canvas id="scene" aria-label="ทะเลสาบยามค่ำคืนในคืนยี่เป็ง มีโคมลอยเต็มฟ้าและไดโนตัวใหญ่ลอยอยู่กลางน้ำ"></canvas>
+
+  <div class="brand"><h1>ลอยกระทงกับไดโน</h1><p>คืนเพ็ญเดือนสิบสอง · ยี่เป็ง</p></div>
+  <div id="status" hidden></div>
+
+  <section id="builder" aria-label="ประดิษฐ์กระทง">
+    <div class="card">
+      <div class="stage">
+        <canvas id="preview" aria-label="ตัวอย่างกระทงของคุณ"></canvas>
+        <p class="note">เลือกวัสดุแล้วกระทงด้านบนจะเปลี่ยนตาม ไดโนรออยู่กลางทะเลสาบ</p>
+      </div>
+      <div class="opts">
+        <h2>ประดิษฐ์กระทงของคุณ</h2>
+        <p class="lede">พับใบตอง เสียบดอกไม้ จุดธูปเทียน แล้วอธิษฐานก่อนปล่อยลงน้ำ</p>
+
+        <div class="group"><div class="label">ฐานกระทง</div><div class="chips" id="optBase"></div></div>
+        <div class="group"><div class="label">ใบที่ใช้พับกลีบ</div><div class="chips" id="optLeaf"></div></div>
+        <div class="group"><div class="label">ดอกไม้ <small>(เลือกได้สูงสุด 3 อย่าง)</small></div><div class="chips" id="optFlower"></div></div>
+        <div class="group"><div class="label">ของแต่ง</div><div class="chips" id="optTopper"></div></div>
+
+        <div class="group">
+          <div class="label">คำอธิษฐาน</div>
+          <div class="fields">
+            <input type="text" id="nick" maxlength="20" placeholder="ชื่อเล่นของคุณ" autocomplete="nickname">
+            <textarea id="wish" maxlength="100" placeholder="ขอให้ปีหน้าใจดีกับเรา..."></textarea>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn primary" id="release" type="button">ลอยกระทง</button>
+          <button class="btn ghost" id="peek" type="button">ดูทะเลสาบก่อน</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="lakeUI" hidden>
+    <div id="hint">แตะท้องฟ้าเพื่อปล่อยโคม · แตะไดโนเพื่อทักทาย · แตะกระทงเพื่ออ่านคำอธิษฐาน</div>
+    <div class="bar">
+      <button class="btn primary" id="newK" type="button">ทำกระทงอีกใบ</button>
+      <button class="btn" id="lantern" type="button">ปล่อยโคมลอย</button>
+      <button class="btn" id="mute" type="button" aria-pressed="false">เสียง: เปิด</button>
+    </div>
+  </div>
+
+  <div id="wishCard" hidden role="status">
+    <button class="close" id="wishClose" type="button" aria-label="ปิด">×</button>
+    <div class="who" id="wishWho"></div>
+    <div class="what" id="wishWhat"></div>
+  </div>
+  <div id="toast" role="status"></div>
+</div>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const cv = $('#scene'), c = cv.getContext('2d');
+const pv = $('#preview'), pc = pv.getContext('2d');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const R = (a, b) => a + Math.random() * (b - a);
+const TAU = Math.PI * 2;
+let W = 0, H = 0, DPR = 1, HZ = 0, S0 = 1, MOON = { x: 0, y: 0, r: 10 };
+let T = 0;
+
+/* ---------- data ---------- */
+const BASES = {
+  banana:  { side: '#b9c08a', top: '#e8ecc3', dot: '#c7ce96', name: 'หยวกกล้วย', sw: '#e8ecc3' },
+  bread:   { side: '#a1612d', top: '#e2a85f', dot: '#c48543', name: 'ขนมปัง (ปลากินได้)', sw: '#e2a85f' },
+  coconut: { side: '#4a311f', top: '#7d5a3a', dot: '#5e4129', name: 'กะลามะพร้าว', sw: '#7d5a3a' },
+};
+const LEAVES = {
+  banana: { c: ['#5c9648', '#386a2c', '#8cc06c'], name: 'ใบตองแก่' },
+  young:  { c: ['#93bf5f', '#5d8d35', '#c3e08a'], name: 'ใบตองอ่อน' },
+  pandan: { c: ['#3f9d6a', '#246f49', '#74cf99'], name: 'ใบเตย' },
+};
+const FLOWERS = {
+  marigold: { name: 'ดาวเรือง', sw: '#e8871e' },
+  orchid:   { name: 'กล้วยไม้', sw: '#a35fc9' },
+  lotus:    { name: 'บัวชมพู', sw: '#f08fb0' },
+  jasmine:  { name: 'มะลิ', sw: '#fbf7ea' },
+  rose:     { name: 'กุหลาบ', sw: '#c93a4b' },
+};
+const design = { base: 'banana', leaf: 'banana', flowers: ['marigold', 'orchid', 'lotus'], dino: true };
+const AMBIENT_WISHES = ['ขอให้ปีหน้าดีกว่าปีนี้', 'ขอให้ที่บ้านแข็งแรงทุกคน', 'ขอให้สอบผ่านฉลุย', 'ขอให้เจอคนที่ใช่', 'ขอให้หายเหนื่อยสักที', 'ขอให้แมวที่บ้านอ้วนท้วน', 'ขอให้งานปังเงินเดือนขึ้น', 'ขอโทษแม่น้ำที่ใช้น้ำเปลือง'];
+const DINO_LINES = ['ไดโนรับคำอธิษฐานไว้แล้ว~', 'อุ๊ย จั๊กจี้!', 'สุขสันต์วันลอยกระทงน้า', 'ขอให้สมหวังทุกข้อเลย', 'โคมสวยจังเลยเนอะ', 'น้ำเย็นนิดนึง แต่ไหว!'];
+
+/* ---------- helpers ---------- */
+function ell(g, x, y, rx, ry, rot = 0) { g.beginPath(); g.ellipse(x, y, Math.max(0.01, rx), Math.max(0.01, ry), rot, 0, TAU); }
+const glow = (() => {
+  const g = document.createElement('canvas'); g.width = g.height = 128; const x = g.getContext('2d');
+  const r = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+  r.addColorStop(0, 'rgba(255,238,195,1)'); r.addColorStop(.18, 'rgba(255,190,110,.75)');
+  r.addColorStop(.45, 'rgba(255,130,50,.22)'); r.addColorStop(1, 'rgba(255,100,30,0)');
+  x.fillStyle = r; x.fillRect(0, 0, 128, 128); return g;
+})();
+function addGlow(g, x, y, w, h, a) {
+  g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha *= a; g.drawImage(glow, x - w / 2, y - h / 2, w, h); g.restore();
+}
+
+/* ---------- dino (drawn from the plush turnaround: green body, yellow belly + head bump, red spiral cheeks, pale back spikes) ---------- */
+const SPIKES = [[-60, -312, 15], [-88, -297, 16], [-106, -273, 16], [-117, -245, 15], [-105, -176, 14], [-110, -146, 15], [-112, -114, 15], [-107, -82, 15], [-99, -52, 14]];
+function spiral(g, cx, cy, r, dir) {
+  g.beginPath();
+  for (let i = 0; i <= 44; i++) { const a = i / 44 * Math.PI * 4.2 * dir; const rr = r * i / 44; const px = cx + Math.cos(a) * rr, py = cy + Math.sin(a) * rr * .9; i ? g.lineTo(px, py) : g.moveTo(px, py); }
+  g.stroke();
+}
+function drawDino(g, o = {}) {
+  const G = '#7a9870', GD = '#5c7854', GL = '#9db88f', YD = '#cbbd58', SP = '#e4d99e';
+  g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
+  // tail
+  g.fillStyle = GD; g.beginPath(); g.moveTo(60, -62); g.quadraticCurveTo(150, -52, 170, -8); g.quadraticCurveTo(120, -2, 60, -10); g.closePath(); g.fill();
+  // back spikes peeking out
+  g.fillStyle = SP; for (const [x, y, r] of SPIKES) { ell(g, x, y, r, r); g.fill(); }
+  // body
+  let gr = g.createRadialGradient(-35, -140, 10, 0, -95, 135); gr.addColorStop(0, GL); gr.addColorStop(.6, G); gr.addColorStop(1, GD);
+  g.fillStyle = gr; ell(g, 0, -95, 98, 105); g.fill();
+  // belly
+  let yg = g.createRadialGradient(-15, -100, 5, 0, -70, 82); yg.addColorStop(0, '#f3e98f'); yg.addColorStop(1, YD);
+  g.fillStyle = yg; ell(g, 0, -70, 64, 74); g.fill();
+  // arms
+  g.fillStyle = G; ell(g, -94, -128, 24, 32, .5); g.fill(); ell(g, 94, -128, 24, 32, -.5); g.fill();
+  // head + muzzle
+  let hg = g.createRadialGradient(-40, -278, 10, 0, -232, 145); hg.addColorStop(0, GL); hg.addColorStop(.65, G); hg.addColorStop(1, GD);
+  g.fillStyle = hg; ell(g, 0, -238, 104, 80); g.fill(); ell(g, 0, -205, 90, 50); g.fill();
+  // head bump
+  g.fillStyle = '#e8db76'; ell(g, 6, -322, 25, 17, .1); g.fill();
+  g.fillStyle = 'rgba(255,255,255,.2)'; ell(g, 0, -328, 10, 5); g.fill();
+  // eyes
+  const lx = Math.max(-1, Math.min(1, o.lookX || 0)) * 6;
+  if (o.blink) {
+    g.strokeStyle = '#161616'; g.lineWidth = 4;
+    for (const ex of [-38, 38]) { g.beginPath(); g.moveTo(ex - 9 + lx, -241); g.quadraticCurveTo(ex + lx, -235, ex + 9 + lx, -241); g.stroke(); }
+  } else {
+    for (const ex of [-38, 38]) {
+      g.fillStyle = '#131313'; ell(g, ex + lx, -242, 10.5, 11.5); g.fill();
+      g.fillStyle = '#fff'; ell(g, ex + lx - 3, -246, 3, 3); g.fill();
+    }
+  }
+  // cheeks
+  g.fillStyle = o.blush ? 'rgba(240,110,125,.45)' : 'rgba(230,120,130,.22)';
+  ell(g, -70, -205, 19, 14); g.fill(); ell(g, 70, -205, 19, 14); g.fill();
+  g.strokeStyle = '#c4313b'; g.lineWidth = 3; spiral(g, -70, -205, 13, 1); spiral(g, 70, -205, 13, -1);
+  // mouth
+  g.strokeStyle = 'rgba(50,70,45,.55)'; g.lineWidth = 2.5;
+  g.beginPath(); g.moveTo(-12, -186); g.quadraticCurveTo(0, o.happy ? -176 : -181, 12, -186); g.stroke();
+  g.restore();
+}
+
+/* ---------- krathong ---------- */
+const FP = [[-6, -42, 10], [9, -44, 10], [0, -54, 9], [-21, -32, 10], [21, -32, 10], [-30, -18, 10], [30, -18, 10], [-14, -20, 11], [14, -20, 11], [0, -26, 11]];
+function flower(g, type, x, y, r) {
+  g.save(); g.translate(x, y);
+  switch (type) {
+    case 'marigold':
+      g.fillStyle = '#d9761a'; ell(g, 0, 0, r, r * .9); g.fill();
+      g.fillStyle = '#f6ad3b'; for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; ell(g, Math.cos(a) * r * .55, Math.sin(a) * r * .5, r * .34, r * .3); g.fill(); }
+      g.fillStyle = '#ffc95a'; ell(g, 0, -r * .1, r * .35, r * .3); g.fill(); break;
+    case 'orchid':
+      g.fillStyle = '#a35fc9'; for (let k = 0; k < 5; k++) { const a = k / 5 * TAU - Math.PI / 2; ell(g, Math.cos(a) * r * .55, Math.sin(a) * r * .5, r * .5, r * .32, a); g.fill(); }
+      g.fillStyle = '#f2ddff'; ell(g, 0, 0, r * .32, r * .3); g.fill(); g.fillStyle = '#f2c94c'; ell(g, 0, r * .05, r * .14, r * .12); g.fill(); break;
+    case 'lotus': {
+      const pet = (rot, col) => { g.save(); g.rotate(rot); g.fillStyle = col; g.beginPath(); g.moveTo(0, -r * 1.35); g.quadraticCurveTo(r * .75, -r * .3, 0, r * .5); g.quadraticCurveTo(-r * .75, -r * .3, 0, -r * 1.35); g.fill(); g.restore(); };
+      pet(-.55, '#e57ea2'); pet(.55, '#e57ea2'); pet(0, '#f6a5c2');
+      g.fillStyle = 'rgba(255,230,238,.7)'; ell(g, 0, -r * .5, r * .12, r * .45); g.fill(); break;
+    }
+    case 'jasmine':
+      g.fillStyle = '#fbf7ea'; for (let k = 0; k < 5; k++) { const a = k / 5 * TAU; ell(g, Math.cos(a) * r * .45, Math.sin(a) * r * .42, r * .36, r * .3, a); g.fill(); }
+      g.fillStyle = '#e4dba6'; ell(g, 0, 0, r * .2, r * .2); g.fill(); break;
+    case 'rose':
+      g.fillStyle = '#b8303f'; ell(g, 0, 0, r, r * .9); g.fill();
+      g.strokeStyle = '#7f1f2b'; g.lineWidth = 1.4; spiral(g, 0, 0, r * .8, 1); break;
+  }
+  g.restore();
+}
+function foldPath(g, w, h) { g.beginPath(); g.moveTo(-w / 2, 0); g.quadraticCurveTo(-w * .55, -h * .55, 0, -h); g.quadraticCurveTo(w * .55, -h * .55, w / 2, 0); g.closePath(); }
+function drawFolds(g, angles, Rr, w, h, L) {
+  angles.sort((a, b) => Math.sin(a) - Math.sin(b));
+  for (const a of angles) {
+    const x = Math.cos(a) * Rr, y = -8 + Math.sin(a) * Rr * .3, lit = .5 + .5 * Math.sin(a);
+    g.save(); g.translate(x, y); g.rotate(Math.cos(a) * .28);
+    const gr = g.createLinearGradient(-w / 2, 0, w / 2, 0); gr.addColorStop(0, L[1]); gr.addColorStop(.5, L[0]); gr.addColorStop(1, L[1]);
+    foldPath(g, w, h); g.fillStyle = gr; g.fill(); g.strokeStyle = L[1]; g.lineWidth = 1; g.stroke();
+    g.strokeStyle = L[2]; g.lineWidth = 1.2; g.beginPath(); g.moveTo(0, -h * .9); g.lineTo(0, -2); g.stroke();
+    if (lit < .5) { foldPath(g, w, h); g.fillStyle = `rgba(0,0,10,${(.5 - lit) * .55})`; g.fill(); }
+    g.restore();
+  }
+}
+const OUTER = Array.from({ length: 14 }, (_, i) => i / 14 * TAU + .1);
+const INNER = Array.from({ length: 9 }, (_, i) => i / 9 * TAU + .3);
+function drawKrathong(g, d, t, ph) {
+  const B = BASES[d.base] || BASES.banana, L = (LEAVES[d.leaf] || LEAVES.banana).c;
+  g.save(); g.lineCap = 'round';
+  // base
+  g.fillStyle = B.side; ell(g, 0, 8, 62, 18); g.fill(); g.fillRect(-62, -6, 124, 14);
+  g.fillStyle = B.top; ell(g, 0, -6, 62, 18); g.fill();
+  g.fillStyle = B.dot; for (let i = 0; i < 18; i++) { const a = i / 18 * TAU; ell(g, Math.cos(a) * 52, -6 + Math.sin(a) * 14, 2.2, 1.4); g.fill(); }
+  drawFolds(g, OUTER.filter(a => Math.sin(a) < 0), 50, 17, 30, L);
+  drawFolds(g, INNER.filter(a => Math.sin(a) < 0), 30, 13, 38, L);
+  // flower mound
+  g.fillStyle = L[1]; ell(g, 0, -26, 33, 22); g.fill();
+  const fl = d.flowers && d.flowers.length ? d.flowers : ['marigold'];
+  FP.map((p, i) => [p, fl[i % fl.length]]).sort((a, b) => a[0][1] - b[0][1]).forEach(([p, type]) => flower(g, type, p[0], p[1], p[2]));
+  // incense
+  g.strokeStyle = '#9a3b2f'; g.lineWidth = 1.6;
+  for (const [x1, y1, x2, y2] of [[10, -46, 18, -90], [14, -44, 27, -85], [6, -46, 10, -92]]) {
+    g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+    g.fillStyle = '#ff6a33'; ell(g, x2, y2, 1.8, 1.8); g.fill();
+  }
+  // candle
+  g.fillStyle = '#efe0b8'; g.fillRect(-4.5, -86, 9, 40);
+  g.fillStyle = '#fff6dc'; ell(g, 0, -86, 4.5, 1.8); g.fill();
+  g.strokeStyle = '#3a2a1a'; g.lineWidth = 1; g.beginPath(); g.moveTo(0, -86); g.lineTo(0, -90); g.stroke();
+  const f = 1 + .12 * Math.sin(t * 14 + ph) + .06 * Math.sin(t * 23 + ph * 2);
+  g.save(); g.translate(0, -89); g.scale(1 - (f - 1) * .5, f);
+  const fg = g.createLinearGradient(0, -16, 0, 2); fg.addColorStop(0, '#fff7d6'); fg.addColorStop(.6, '#ffc24d'); fg.addColorStop(1, '#ff7a22');
+  g.fillStyle = fg; g.beginPath(); g.moveTo(0, -17); g.quadraticCurveTo(6.5, -6, 4.2, 0); g.quadraticCurveTo(0, 3.5, -4.2, 0); g.quadraticCurveTo(-6.5, -6, 0, -17); g.fill();
+  g.restore();
+  drawFolds(g, INNER.filter(a => Math.sin(a) >= 0), 30, 13, 38, L);
+  drawFolds(g, OUTER.filter(a => Math.sin(a) >= 0), 50, 17, 30, L);
+  if (d.dino) { g.save(); g.translate(-34, 6); g.scale(.115, .115); drawDino(g, { blink: Math.sin(t * 1.3 + ph) > .985, happy: true }); g.restore(); }
+  g.restore();
+}
+
+/* ---------- backdrop ---------- */
+const bg = document.createElement('canvas');
+let stars = [], wave = [];
+function ridge(g, base, amp, color, f, s) {
+  g.fillStyle = color; g.beginPath(); g.moveTo(0, base);
+  for (let x = 0; x <= W + 6; x += 6) { const u = x / W; g.lineTo(x, base - amp * (.55 + .25 * Math.sin(u * 6.1 * f + s) + .15 * Math.sin(u * 15.3 * f + s * 2) + .06 * Math.sin(u * 37 * f + s))); }
+  g.lineTo(W, base + 1); g.lineTo(0, base + 1); g.closePath(); g.fill();
+}
+function drawChedi(g, x, y, k) {
+  g.save(); g.translate(x, y); g.scale(k, k); g.fillStyle = '#19163d';
+  g.fillRect(-36, -10, 72, 12); g.fillRect(-27, -20, 54, 10); g.fillRect(-21, -28, 42, 8);
+  g.beginPath(); g.moveTo(-21, -28); g.bezierCurveTo(-22, -64, 22, -64, 21, -28); g.fill();
+  g.fillRect(-8, -64, 16, 8);
+  g.beginPath(); g.moveTo(-6, -62); g.lineTo(0, -112); g.lineTo(6, -62); g.fill();
+  g.fillStyle = 'rgba(255,200,120,.95)'; for (let i = -3; i <= 3; i++) g.fillRect(i * 9 - 1, -7, 2, 2);
+  g.fillStyle = 'rgba(255,200,120,.6)'; for (let i = -2; i <= 2; i++) g.fillRect(i * 9 - 1, -17, 2, 2);
+  g.restore();
+}
+function buildBg() {
+  bg.width = cv.width; bg.height = cv.height;
+  const g = bg.getContext('2d'); g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const sk = g.createLinearGradient(0, 0, 0, HZ);
+  sk.addColorStop(0, '#070a24'); sk.addColorStop(.5, '#171747'); sk.addColorStop(.82, '#3a2456'); sk.addColorStop(1, '#6e3651');
+  g.fillStyle = sk; g.fillRect(0, 0, W, HZ + 1);
+  const hz = g.createRadialGradient(W * .45, HZ, 0, W * .45, HZ, Math.max(W, H) * .7);
+  hz.addColorStop(0, 'rgba(255,140,70,.30)'); hz.addColorStop(1, 'rgba(255,140,70,0)');
+  g.fillStyle = hz; g.fillRect(0, 0, W, HZ);
+  const mr = Math.max(14, Math.min(W, H) * .038); MOON = { x: W * .8, y: HZ * .22, r: mr };
+  const mg = g.createRadialGradient(MOON.x, MOON.y, mr * .8, MOON.x, MOON.y, mr * 5);
+  mg.addColorStop(0, 'rgba(255,240,210,.33)'); mg.addColorStop(1, 'rgba(255,240,210,0)');
+  g.fillStyle = mg; g.beginPath(); g.arc(MOON.x, MOON.y, mr * 5, 0, TAU); g.fill();
+  g.fillStyle = '#fff3da'; g.beginPath(); g.arc(MOON.x, MOON.y, mr, 0, TAU); g.fill();
+  g.fillStyle = 'rgba(210,195,170,.35)';
+  for (const [dx, dy, rr] of [[-.3, -.2, .22], [.25, .15, .17], [-.05, .38, .12], [.35, -.35, .1]]) { g.beginPath(); g.arc(MOON.x + dx * mr, MOON.y + dy * mr, rr * mr, 0, TAU); g.fill(); }
+  ridge(g, HZ, HZ * .17, '#2a2153', 1.3, 3);
+  ridge(g, HZ, HZ * .09, '#19163d', 2.1, 11);
+  drawChedi(g, W * .17, HZ - HZ * .045, Math.max(.55, Math.min(1.1, H / 850)));
+  for (let i = 0; i < W / 10; i++) { g.fillStyle = `rgba(255,${180 + Math.random() * 50 | 0},110,${R(.4, .95)})`; g.fillRect(Math.random() * W, HZ - 1 - Math.random() * 3, 1.4, 1.4); }
+  const wg = g.createLinearGradient(0, HZ, 0, H);
+  wg.addColorStop(0, '#2b2152'); wg.addColorStop(.12, '#171a44'); wg.addColorStop(1, '#050820');
+  g.fillStyle = wg; g.fillRect(0, HZ, W, H - HZ);
+  const wh = g.createRadialGradient(W * .45, HZ, 0, W * .45, HZ, W * .6);
+  wh.addColorStop(0, 'rgba(255,150,80,.18)'); wh.addColorStop(1, 'rgba(255,150,80,0)');
+  g.fillStyle = wh; g.fillRect(0, HZ, W, H - HZ);
+  g.fillStyle = 'rgba(8,8,30,.5)'; g.fillRect(0, HZ, W, HZ * .045);
+}
+function resize() {
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  W = cv.clientWidth || window.innerWidth; H = cv.clientHeight || window.innerHeight;
+  if (!W || !H) return;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  HZ = Math.round(H * (W < H ? .44 : .5));
+  S0 = Math.min(W, H) * .0021;
+  buildBg();
+  stars = []; const n = Math.round(W * HZ / 4500);
+  for (let i = 0; i < n; i++) stars.push({ x: Math.random() * W, y: Math.random() * HZ * .8, r: Math.random() * 1.1 + .3, p: Math.random() * 6 });
+  wave = [];
+  for (let i = 0; i < 80; i++) { const y = HZ + 6 + Math.pow(Math.random(), 1.3) * (H - HZ); wave.push({ x: Math.random() * W, y, len: (8 + Math.random() * 40) * (.3 + (y - HZ) / (H - HZ)), p: Math.random() * 6, warm: Math.random() < .4 }); }
+}
+
+/* ---------- world ---------- */
+const DP = .42; // dino depth
+const dino = { bounce: 0, blinkAt: 2, speech: null, speechUntil: 0, blushUntil: 0 };
+const hearts = [], ripples = [], lanterns = [], krathongs = [];
+let hasMine = false, toastTimer = 0;
+function dScale() { return Math.min(H * .36, W * .58) / 340; }
+function dinoHalfX() { return 125 * dScale() / (S0 * DP * 150); }
+function kScreen(k) { const y = HZ + k.p * (H - HZ); const s = S0 * k.p / .85; return { x: W / 2 + k.X * S0 * k.p * 150, y, s }; }
+function makeK(o) { return Object.assign({ X: 0, p: .5, rate: .02, ph: Math.random() * 6, age: 0, alpha: 0, life: Infinity, d: design, name: '', wish: '' }, o); }
+function randDesign() {
+  const fl = Object.keys(FLOWERS).sort(() => Math.random() - .5).slice(0, 1 + (Math.random() * 3 | 0));
+  return { base: Object.keys(BASES)[Math.random() * 3 | 0], leaf: Object.keys(LEAVES)[Math.random() * 3 | 0], flowers: fl, dino: Math.random() < .2 };
+}
+function spawnAmbient(p) {
+  let X = R(-2.6, 2.6); const pp = p ?? R(.3, .72);
+  if (Math.abs(X) < dinoHalfX() * 1.2 && Math.abs(pp - DP) < .14) X = (X < 0 ? -1 : 1) * dinoHalfX() * R(1.3, 2);
+  krathongs.push(makeK({ X, p: pp, rate: .018, d: randDesign(), ambient: true, life: R(55, 95), name: 'นักลอยนิรนาม', wish: AMBIENT_WISHES[Math.random() * AMBIENT_WISHES.length | 0] }));
+}
+function spawnLantern(initial) {
+  lanterns.push({ x: Math.random() * W, y: initial ? Math.random() * HZ : HZ - Math.random() * HZ * .08, s: R(1.2, 4.2), vy: R(4, 12), ph: Math.random() * 6, sw: R(2, 7), user: false });
+}
+function releaseLantern(x, y) {
+  const s = Math.min(W, H) * .028;
+  lanterns.push({ x, y, s, vy: Math.min(W, H) * .07, ph: Math.random() * 6, sw: 10, user: true });
+  chime([659, 784, 988]);
+}
+
+/* ---------- sound ---------- */
+let actx = null, muted = false;
+function chime(notes) {
+  if (muted) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+    const now = actx.currentTime;
+    notes.forEach((f, i) => {
+      const o = actx.createOscillator(), gn = actx.createGain(), t0 = now + i * .13;
+      o.type = 'sine'; o.frequency.value = f;
+      gn.gain.setValueAtTime(0, t0); gn.gain.linearRampToValueAtTime(.1, t0 + .02); gn.gain.exponentialRampToValueAtTime(.0001, t0 + 1.6);
+      o.connect(gn).connect(actx.destination); o.start(t0); o.stop(t0 + 1.7);
+    });
+  } catch (e) {}
+}
+
+/* ---------- dino reactions ---------- */
+function dinoReact(line) {
+  dino.bounce = 1; dino.blushUntil = T + 2.5;
+  dino.speech = line || DINO_LINES[Math.random() * DINO_LINES.length | 0]; dino.speechUntil = T + 3;
+  const ds = dScale();
+  for (let i = 0; i < 6; i++) hearts.push({ x: W / 2 + R(-70, 70) * ds, y: HZ + DP * (H - HZ) - 300 * ds, vx: R(-14, 14), vy: R(-50, -30), life: 1, sz: R(6, 11) });
+  chime([784, 1046]);
+}
+
+/* ---------- update ---------- */
+function update(dt) {
+  T += dt;
+  const target = reduce ? 40 : (W < 700 ? 70 : 110);
+  if (lanterns.filter(l => !l.user).length < target && Math.random() < dt * 6) spawnLantern(false);
+  for (let i = lanterns.length - 1; i >= 0; i--) {
+    const l = lanterns[i];
+    l.y -= l.vy * dt; l.x += Math.sin(T * .6 + l.ph) * l.sw * dt + 3 * dt; l.ph += dt * 3;
+    if (l.user) { l.s *= 1 - .09 * dt; l.vy *= 1 - .06 * dt; if (l.s < 2.4) l.user = false; }
+    if (l.y < -40 || l.x > W + 40) lanterns.splice(i, 1);
+  }
+  if (krathongs.filter(k => k.ambient).length < 5 && Math.random() < dt * .25) spawnAmbient();
+  const hx = dinoHalfX();
+  for (let i = krathongs.length - 1; i >= 0; i--) {
+    const k = krathongs[i];
+    k.age += dt;
+    k.p -= dt * k.rate * Math.max(0, k.p - .05);
+    k.X += Math.sin(T * .3 + k.ph) * .04 * dt;
+    if (k.p < DP + .16 && k.p > DP - .08 && Math.abs(k.X) < hx * 1.15) k.X += (k.X >= 0 ? 1 : -1) * dt * (.35 + .9 * (1 - Math.abs(k.X) / (hx * 1.15)));
+    k.alpha = Math.min(1, k.age / 2);
+    if (k.age > k.life) { k.alpha = Math.max(0, 1 - (k.age - k.life) / 3); if (k.alpha <= 0) { krathongs.splice(i, 1); continue; } }
+    if (k.mine && !k.greeted && k.p < DP + .1) { k.greeted = true; dinoReact('ไดโนขอให้' + (k.name || 'เธอ') + 'สมหวังนะ!'); }
+  }
+  dino.bounce = Math.max(0, dino.bounce - dt * 1.1);
+  if (T > dino.blinkAt + .14) dino.blinkAt = T + R(2.5, 5);
+  for (let i = hearts.length - 1; i >= 0; i--) { const h = hearts[i]; h.x += h.vx * dt; h.y += h.vy * dt; h.life -= dt * .55; if (h.life <= 0) hearts.splice(i, 1); }
+  for (let i = ripples.length - 1; i >= 0; i--) { const r = ripples[i]; r.t += dt; if (r.t > 2) ripples.splice(i, 1); }
+}
+
+/* ---------- draw ---------- */
+function drawLantern(l) {
+  const flick = .85 + .15 * Math.sin(l.ph * 2.3) * Math.sin(l.ph * 1.7);
+  addGlow(c, l.x, l.y, l.s * 7, l.s * 7, .55 * flick);
+  if (l.s > 3.2) {
+    const s = l.s; c.save(); c.translate(l.x, l.y); c.rotate(Math.sin(l.ph * .4) * .06);
+    const gr = c.createLinearGradient(0, -s, 0, s); gr.addColorStop(0, '#f07a2a'); gr.addColorStop(1, '#ffd47e');
+    c.fillStyle = gr; c.beginPath();
+    c.moveTo(-s * .8, -s); c.quadraticCurveTo(0, -s * 1.35, s * .8, -s); c.lineTo(s * .6, s); c.quadraticCurveTo(0, s * 1.15, -s * .6, s); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(255,248,215,.9)'; ell(c, 0, s * .98, s * .5, s * .14); c.fill();
+    c.restore();
+  } else { c.fillStyle = '#ffc56b'; ell(c, l.x, l.y, l.s * .55, l.s * .7); c.fill(); }
+}
+function heart(g, x, y, s) { g.beginPath(); g.moveTo(x, y + s * .35); g.bezierCurveTo(x - s, y - s * .4, x - s * .45, y - s * 1.1, x, y - s * .45); g.bezierCurveTo(x + s * .45, y - s * 1.1, x + s, y - s * .4, x, y + s * .35); g.fill(); }
+function roundRect(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+
+function drawDinoScene() {
+  const ds = dScale(), dx = W / 2, dy = HZ + DP * (H - HZ);
+  const bob = Math.sin(T * 1.2) * 4 * ds * 2, rot = Math.sin(T * .8) * .03;
+  const b = dino.bounce, sq = Math.sin(b * Math.PI * 3) * .07 * b;
+  const mine = krathongs.find(k => k.mine && k.p > DP - .05);
+  const look = mine ? Math.max(-1, Math.min(1, mine.X / 3)) : Math.sin(T * .25) * .5;
+  const o = { blink: T > dino.blinkAt && T < dino.blinkAt + .14, lookX: look, blush: T < dino.blushUntil, happy: true };
+  // warm light behind
+  addGlow(c, dx, dy - 120 * ds, 520 * ds, 360 * ds, .18);
+  // reflection
+  c.save(); c.beginPath(); c.rect(0, dy, W, H - dy); c.clip();
+  c.translate(dx, dy + 2); c.rotate(-rot); c.scale(ds * (1 + Math.sin(T * 2.2) * .01), -ds * .55);
+  c.globalAlpha = .14; drawDino(c, o); c.restore();
+  // body
+  c.save(); c.beginPath(); c.rect(0, 0, W, dy + bob * .3); c.clip();
+  c.translate(dx, dy + bob); c.rotate(rot); c.scale(ds * (1 - sq), ds * (1 + sq)); drawDino(c, o); c.restore();
+  // waterline
+  c.strokeStyle = 'rgba(255,220,170,.28)'; c.lineWidth = 1.5;
+  ell(c, dx, dy + bob * .3, 112 * ds, 14 * ds); c.stroke();
+  for (let i = 0; i < 2; i++) { const ph = (T * .35 + i * .5) % 1; c.strokeStyle = `rgba(200,210,255,${.22 * (1 - ph)})`; ell(c, dx, dy + 4, (115 + ph * 120) * ds, (14 + ph * 16) * ds); c.stroke(); }
+  // lantern light on belly
+  addGlow(c, dx, dy - 20 * ds, 180 * ds, 70 * ds, .25);
+}
+function drawKScene(k) {
+  const { x, y, s } = kScreen(k); const bob = Math.sin(T * 1.7 + k.ph) * 2.2 * s;
+  c.save(); c.globalAlpha = k.alpha;
+  addGlow(c, x, y + 26 * s, 150 * s, 55 * s, .45);
+  addGlow(c, x, y + 50 * s, 26 * s, 90 * s, .35);
+  c.strokeStyle = 'rgba(255,210,150,.18)'; c.lineWidth = Math.max(.6, s);
+  ell(c, x, y + 10 * s, 72 * s * (1 + .04 * Math.sin(T * 2 + k.ph)), 15 * s); c.stroke();
+  c.save(); c.translate(x, y + bob); c.rotate(Math.sin(T * 1.1 + k.ph) * .04); c.scale(s, s); drawKrathong(c, k.d, T, k.ph); c.restore();
+  const fl = .85 + .15 * Math.sin(T * 13 + k.ph) * Math.sin(T * 7.3);
+  addGlow(c, x, y + bob - 95 * s, 120 * s, 120 * s, .8 * fl);
+  if ((k.mine || k.friend) && k.p > .1) {
+    const label = k.mine ? 'ของคุณ' + (k.name ? ' · ' + k.name : '') : k.name;
+    const fs = Math.max(11, Math.min(15, 15 * s / S0));
+    c.font = `500 ${fs}px Mitr, "Noto Sans Thai", sans-serif`; c.textAlign = 'center';
+    c.fillStyle = 'rgba(10,10,30,.55)'; const tw = c.measureText(label).width;
+    roundRect(c, x - tw / 2 - 8, y - 128 * s - fs - 2, tw + 16, fs + 9, (fs + 9) / 2); c.fill();
+    c.fillStyle = k.mine ? '#ffd38a' : '#f7eedc'; c.fillText(label, x, y - 128 * s - 1);
+  }
+  c.restore();
+}
+function draw() {
+  c.setTransform(DPR, 0, 0, DPR, 0, 0);
+  c.drawImage(bg, 0, 0, W, H);
+  for (const s of stars) { c.globalAlpha = .35 + .45 * Math.sin(T * 1.5 + s.p) ** 2; c.fillStyle = '#fff6e0'; c.fillRect(s.x, s.y, s.r, s.r); }
+  c.globalAlpha = 1;
+  // lantern reflections
+  for (const l of lanterns) { if (l.y > HZ) continue; const ry = HZ + (HZ - l.y) * .45; if (ry < H) addGlow(c, l.x, ry, l.s * 6, l.s * 2.4, .22); }
+  // moon streak
+  for (let i = 0, y = HZ + 4; y < H; i++, y += 5 + i * .35) {
+    const w = (6 + (y - HZ) * .22) * (.4 + .6 * Math.abs(Math.sin(T * 1.4 + i * 1.7)));
+    c.fillStyle = `rgba(255,240,205,${.16 * (1 - (y - HZ) / (H - HZ) * .6)})`; c.fillRect(MOON.x - w / 2 + Math.sin(T + i) * 3, y, w, 1.6);
+  }
+  for (const w of wave) { const a = .05 + .05 * Math.sin(T * 1.2 + w.p); c.fillStyle = w.warm ? `rgba(255,180,110,${a})` : `rgba(180,195,255,${a})`; c.fillRect((w.x + T * 4) % (W + 60) - 30, w.y, w.len, 1.2); }
+  for (const l of lanterns) drawLantern(l);
+  // depth sorted lake objects
+  const items = krathongs.map(k => ({ p: k.p, k }));
+  items.push({ p: DP, dino: true });
+  items.sort((a, b) => a.p - b.p);
+  for (const it of items) it.dino ? drawDinoScene() : drawKScene(it.k);
+  for (const r of ripples) { const a = 1 - r.t / 2; c.strokeStyle = `rgba(220,225,255,${.35 * a})`; c.lineWidth = 1.2; ell(c, r.x, r.y, 10 + r.t * 50 * r.s, (10 + r.t * 50 * r.s) * .22); c.stroke(); }
+  c.fillStyle = '#ff8fab';
+  for (const h of hearts) { c.globalAlpha = Math.max(0, h.life); heart(c, h.x, h.y, h.sz); }
+  c.globalAlpha = 1;
+  if (dino.speech && T < dino.speechUntil) {
+    const ds = dScale(), bx = W / 2, by = HZ + DP * (H - HZ) - 352 * ds;
+    c.font = '500 15px Mitr, "Noto Sans Thai", sans-serif'; c.textAlign = 'center';
+    const tw = Math.min(c.measureText(dino.speech).width, W - 60);
+    const a = Math.min(1, (dino.speechUntil - T) * 2); c.globalAlpha = a;
+    c.fillStyle = 'rgba(255,246,228,.96)'; roundRect(c, bx - tw / 2 - 14, by - 36, tw + 28, 34, 17); c.fill();
+    c.beginPath(); c.moveTo(bx - 7, by - 3); c.lineTo(bx, by + 7); c.lineTo(bx + 7, by - 3); c.fill();
+    c.fillStyle = '#3a2440'; c.fillText(dino.speech, bx, by - 13, W - 60);
+    c.globalAlpha = 1;
+  }
+}
+function drawPreview() {
+  const w = pv.clientWidth, h = pv.clientHeight; if (!w || !h) return;
+  if (pv.width !== Math.round(w * DPR) || pv.height !== Math.round(h * DPR)) { pv.width = Math.round(w * DPR); pv.height = Math.round(h * DPR); }
+  pc.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const sk = pc.createLinearGradient(0, 0, 0, h); sk.addColorStop(0, '#141743'); sk.addColorStop(.55, '#2a1f50'); sk.addColorStop(.56, '#1a1c48'); sk.addColorStop(1, '#070a24');
+  pc.fillStyle = sk; pc.fillRect(0, 0, w, h);
+  const s = Math.min(w / 165, h / 150), cx = w / 2, cy = h * .72 + Math.sin(T * 1.6) * 2;
+  addGlow(pc, cx, cy + 22 * s, 190 * s, 60 * s, .5);
+  pc.strokeStyle = 'rgba(255,210,150,.22)'; pc.lineWidth = 1; ell(pc, cx, cy + 10 * s, 74 * s, 15 * s); pc.stroke();
+  pc.save(); pc.translate(cx, cy); pc.scale(s, s); drawKrathong(pc, design, T, 0); pc.restore();
+  addGlow(pc, cx, cy - 95 * s, 130 * s, 130 * s, .85);
+}
+
+/* ---------- loop ---------- */
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  if (cv.clientWidth !== W || cv.clientHeight !== H || !bg.width) resize();
+  if (W && H && bg.width) { update(dt); draw(); if (!builder.hidden) drawPreview(); }
+  requestAnimationFrame(frame);
+}
+
+/* ---------- UI ---------- */
+const builder = $('#builder'), lakeUI = $('#lakeUI');
+function chipRow(el, items, isOn, onPick) {
+  el.textContent = '';
+  for (const [key, label, sw] of items) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.id = el.id + '-' + key;
+    if (sw) { const s = document.createElement('span'); s.className = 'sw'; s.style.background = sw; b.append(s); }
+    b.append(document.createTextNode(label));
+    b.setAttribute('aria-pressed', String(isOn(key)));
+    b.onclick = () => { onPick(key); renderOpts(); };
+    el.append(b);
+  }
+}
+function renderOpts() {
+  chipRow($('#optBase'), Object.entries(BASES).map(([k, v]) => [k, v.name, v.sw]), k => design.base === k, k => design.base = k);
+  chipRow($('#optLeaf'), Object.entries(LEAVES).map(([k, v]) => [k, v.name, v.c[0]]), k => design.leaf === k, k => design.leaf = k);
+  chipRow($('#optFlower'), Object.entries(FLOWERS).map(([k, v]) => [k, v.name, v.sw]), k => design.flowers.includes(k), k => {
+    const i = design.flowers.indexOf(k);
+    if (i >= 0) { if (design.flowers.length > 1) design.flowers.splice(i, 1); }
+    else { design.flowers.push(k); if (design.flowers.length > 3) design.flowers.shift(); }
+  });
+  chipRow($('#optTopper'), [['yes', 'ไดโนจิ๋วนั่งบนกระทง', '#7a9870'], ['no', 'ไม่ใส่', '']], k => (k === 'yes') === design.dino, k => design.dino = k === 'yes');
+}
+function showLake() {
+  builder.hidden = true; lakeUI.hidden = false;
+  const hint = $('#hint'); hint.style.opacity = 1; clearTimeout(showLake.t); showLake.t = setTimeout(() => hint.style.opacity = 0, 9000);
+}
+function showBuilder() { builder.hidden = false; lakeUI.hidden = true; $('#wishCard').hidden = true; }
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), 3200); }
+let wishTimer = 0;
+function showWish(k) {
+  $('#wishWho').textContent = k.mine ? 'คำอธิษฐานของคุณ' : (k.friend ? 'กระทงของ ' + (k.name || 'เพื่อน') : 'กระทงของ' + k.name);
+  $('#wishWhat').textContent = k.wish || '(ลอยไปเงียบๆ ไม่ได้เขียนคำอธิษฐาน)';
+  $('#wishCard').hidden = false; clearTimeout(wishTimer); wishTimer = setTimeout(() => $('#wishCard').hidden = true, 7000);
+}
+$('#wishClose').onclick = () => $('#wishCard').hidden = true;
+
+try { const n = localStorage.getItem('lk-nick'); if (n) $('#nick').value = n; } catch (e) {}
+
+$('#release').onclick = () => {
+  const name = $('#nick').value.trim().slice(0, 20);
+  const wish = $('#wish').value.trim().slice(0, 100);
+  try { if (name) localStorage.setItem('lk-nick', name); } catch (e) {}
+  const k = makeK({ X: R(-.35, .35), p: .76, rate: .03, d: JSON.parse(JSON.stringify(design)), name, wish, mine: true });
+  krathongs.push(k); hasMine = true;
+  showLake();
+  const { x, y, s } = kScreen(k);
+  ripples.push({ x, y: y + 10 * s, t: 0, s: 2 }, { x, y: y + 10 * s, t: -.4, s: 2 });
+  chime([523, 659, 784, 1046]);
+  toast('ลอยแล้ว! ดูกระทงของคุณไปหาไดโนกลางทะเลสาบ');
+  $('#wish').value = '';
+  saveShared(k);
+};
+$('#peek').onclick = showLake;
+$('#newK').onclick = showBuilder;
+$('#lantern').onclick = () => releaseLantern(W / 2 + R(-W * .3, W * .3), H * .82);
+$('#mute').onclick = e => { muted = !muted; e.currentTarget.textContent = muted ? 'เสียง: ปิด' : 'เสียง: เปิด'; e.currentTarget.setAttribute('aria-pressed', String(muted)); };
+
+cv.addEventListener('pointerdown', e => {
+  if (!builder.hidden) return;
+  const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  // krathongs, nearest first
+  const sorted = [...krathongs].sort((a, b) => b.p - a.p);
+  for (const k of sorted) {
+    const p = kScreen(k), hw = Math.max(22, 70 * p.s);
+    if (Math.abs(x - p.x) < hw && y > p.y - Math.max(30, 110 * p.s) && y < p.y + Math.max(14, 22 * p.s)) { showWish(k); return; }
+  }
+  const ds = dScale(), dx = W / 2, dy = HZ + DP * (H - HZ);
+  if (Math.abs(x - dx) < 120 * ds && y > dy - 345 * ds && y < dy + 10) { dinoReact(); return; }
+  if (y < HZ) releaseLantern(x, y);
+  else { ripples.push({ x, y, t: 0, s: .4 + (y - HZ) / (H - HZ) }); chime([392]); }
+});
+
+/* ---------- shared lake (optional: lights up when the viewer can use the artifact store) ---------- */
+let db = null, uid = null;
+const remote = new Map();
+function clean(v) {
+  if (!v || typeof v !== 'object') return null;
+  const d = v.design && typeof v.design === 'object' ? v.design : {};
+  let fl = Array.isArray(d.flowers) ? d.flowers.filter(f => typeof f === 'string' && FLOWERS[f]).slice(0, 3) : [];
+  if (!fl.length) fl = ['marigold'];
+  return {
+    name: String(v.name || '').slice(0, 20), wish: String(v.wish || '').slice(0, 100), at: Number(v.at) || 0,
+    design: { base: BASES[d.base] ? d.base : 'banana', leaf: LEAVES[d.leaf] ? d.leaf : 'banana', flowers: fl, dino: !!d.dino },
+  };
+}
+function setStatus(t) { const s = $('#status'); s.textContent = t; s.hidden = !t; }
+function syncFriends(docs) {
+  const seen = new Set(); let friends = 0;
+  for (const doc of docs) {
+    const v = clean(doc.data()); if (!v) continue;
+    const isMe = uid && doc.id === uid;
+    seen.add(doc.id); if (!isMe) friends++;
+    if (isMe && hasMine) continue;
+    const old = remote.get(doc.id);
+    if (old && old.at === v.at) continue;
+    if (old) { const i = krathongs.indexOf(old); if (i >= 0) krathongs.splice(i, 1); }
+    let X = R(-2.4, 2.4); const p = R(.15, .62);
+    if (Math.abs(X) < dinoHalfX() * 1.2 && Math.abs(p - DP) < .14) X = (X < 0 ? -1 : 1) * dinoHalfX() * R(1.3, 1.9);
+    const k = makeK({ X, p, rate: .004, d: v.design, name: v.name || 'เพื่อน', wish: v.wish, at: v.at, mine: !!isMe, friend: !isMe, greeted: true });
+    krathongs.push(k); remote.set(doc.id, k);
+  }
+  for (const [id, k] of remote) if (!seen.has(id)) { const i = krathongs.indexOf(k); if (i >= 0) krathongs.splice(i, 1); remote.delete(id); }
+  setStatus(friends ? `มีเพื่อนลอยกระทงไว้แล้ว ${friends} ใบ` : 'ทะเลสาบรวม · ยังไม่มีเพื่อนมาลอย');
+}
+function saveShared(k) {
+  if (!db || !uid) return;
+  db.doc('krathongs/' + uid).set({ name: k.name, wish: k.wish, design: k.d, at: Date.now() })
+    .then(() => toast('กระทงของคุณลอยอยู่ในทะเลสาบรวมแล้ว เพื่อนที่เปิดลิงก์จะเห็นด้วย'))
+    .catch(() => {});
+}
+(async () => {
+  try {
+    if (!window.claude || typeof window.claude.use !== 'function') return;
+    const [d, u] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+    if (!d) return;
+    db = d; uid = u ? await u.id() : null;
+    const timer = setTimeout(() => setStatus(''), 10000);
+    db.collection('krathongs').orderBy('at', 'desc').limit(40).onSnapshot(
+      snap => { if (!snap.metadata.fromCache) clearTimeout(timer); syncFriends(snap.docs); },
+      () => { clearTimeout(timer); }
+    );
+  } catch (e) {}
+})();
+
+/* ---------- boot ---------- */
+renderOpts();
+resize();
+window.addEventListener('resize', resize);
+for (let i = 0; i < (reduce ? 40 : 90); i++) spawnLantern(true);
+for (let i = 0; i < 4; i++) spawnAmbient(R(.15, .75));
+requestAnimationFrame(frame);
+})();
+</script>
